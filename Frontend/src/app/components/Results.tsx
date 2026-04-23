@@ -24,7 +24,7 @@ export function Results({ result, patientDetails, serialNumber, onUploadAnother,
         message: 'No signs of cataract detected',
       };
     }
-    
+
     if (result.severity === 'Mild') {
       return {
         icon: AlertCircle,
@@ -36,10 +36,10 @@ export function Results({ result, patientDetails, serialNumber, onUploadAnother,
         message: 'Mild cataract detected - recommend monitoring',
       };
     }
-    
 
 
-    
+
+
     return {
       icon: AlertTriangle,
       color: 'from-[#ef4444] to-[#f87171]',
@@ -50,26 +50,98 @@ export function Results({ result, patientDetails, serialNumber, onUploadAnother,
       message: 'Severe cataract detected - recommend clinical consultation',
     };
   };
+  // const handleDownloadPDF = () => {
+  //   const doc = new jsPDF();
+
+  //   doc.setFont("helvetica", "bold");
+  //   doc.setFontSize(18);
+  //   doc.text("CataractNet Report", 20, 20);
+
+  //   doc.setFontSize(12);
+  //   doc.setFont("helvetica", "normal");
+
+  //   doc.text(`Name: ${patientDetails?.name || "N/A"}`, 20, 40);
+  //   doc.text(`Age: ${patientDetails?.age || "-"}`, 20, 50);
+  //   doc.text(`Gender: ${patientDetails?.gender || "-"}`, 20, 60);
+
+  //   doc.text(`Status: ${result.status}`, 20, 80);
+  //   doc.text(`Severity: ${result.severity || "N/A"}`, 20, 90);
+  //   doc.text(`Confidence: ${result.confidence.toFixed(2)}%`, 20, 100);
+
+  //   doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 120);
+
+  //   doc.save(`Cataract_Report_${Date.now()}.pdf`);
+  // };
+
   const handleDownloadPDF = () => {
   const doc = new jsPDF();
 
+  // 🔷 HEADER
+  doc.setFillColor(8, 145, 178); // teal bg
+  doc.rect(0, 0, 210, 30, "F");
+
+  doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text("CataractNet Report", 20, 20);
+  doc.text("CataractNet Report", 105, 18, { align: "center" });
+
+  // 🔷 Reset text color
+  doc.setTextColor(0, 0, 0);
+
+  // 🔷 Patient Section
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("Patient Details", 20, 45);
+
+  doc.setDrawColor(200);
+  doc.line(20, 48, 190, 48);
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
 
-  doc.text(`Name: ${patientDetails?.name || "N/A"}`, 20, 40);
-  doc.text(`Age: ${patientDetails?.age || "-"}`, 20, 50);
-  doc.text(`Gender: ${patientDetails?.gender || "-"}`, 20, 60);
+  doc.text(`Name: ${patientDetails?.name || "N/A"}`, 20, 60);
+  doc.text(`Age: ${patientDetails?.age || "-"}`, 20, 70);
+  doc.text(`Gender: ${patientDetails?.gender || "-"}`, 20, 80);
 
-  doc.text(`Status: ${result.status}`, 20, 80);
-  doc.text(`Severity: ${result.severity || "N/A"}`, 20, 90);
-  doc.text(`Confidence: ${result.confidence.toFixed(2)}%`, 20, 100);
+  // 🔷 Result Section
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("Analysis Result", 20, 100);
 
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 120);
+  doc.line(20, 103, 190, 103);
 
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+
+  doc.text(`Status: ${result.status}`, 20, 115);
+  doc.text(`Severity: ${result.severity || "N/A"}`, 20, 125);
+  doc.text(`Confidence: ${result.confidence.toFixed(2)}%`, 20, 135);
+
+  // 🔷 Status Highlight Box
+  doc.setFillColor(240, 248, 255);
+  doc.roundedRect(20, 150, 170, 20, 3, 3, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text(`Diagnosis: ${result.status}`, 25, 163);
+
+  // 🔷 Footer
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+
+  doc.text(
+    `Generated on: ${new Date().toLocaleDateString()}`,
+    20,
+    180
+  );
+
+  doc.text(
+    "This report is AI-generated and should be reviewed by a medical professional.",
+    20,
+    190
+  );
+
+  // 🔷 Save
   doc.save(`Cataract_Report_${Date.now()}.pdf`);
 };
 
@@ -84,7 +156,7 @@ export function Results({ result, patientDetails, serialNumber, onUploadAnother,
       severity: result.severity,
       confidence: result.confidence,
     };
-    
+
     const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -303,7 +375,7 @@ export function Results({ result, patientDetails, serialNumber, onUploadAnother,
                   Download PDF Report
                 </button>
 
-                  
+
                 <button
                   onClick={onUploadAnother}
                   className="w-full px-6 py-3 bg-white border-2 border-[#0891b2] text-[#0891b2] rounded-xl hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2"
