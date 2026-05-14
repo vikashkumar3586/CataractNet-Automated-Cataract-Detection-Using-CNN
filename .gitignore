@@ -56,5 +56,5 @@ uploads/*
 
 # Results
 results/*
-backend/.git
-frontend/.git
+backend/.env
+frontend/.env
