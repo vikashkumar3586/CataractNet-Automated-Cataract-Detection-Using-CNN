@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getCurrentUser } from './utils/auth';
+import { getCurrentUser, getAuthToken, buildApiUrl, logoutUser } from './utils/auth';
 import { Landing } from './components/Landing';
 import { Upload } from './components/Upload';
 import { Processing } from './components/Processing';
@@ -67,21 +67,6 @@ export default function App() {
     return currentYear - birthYear;
   };
 
-  const savePatientRecord = (record: PatientRecord) => {
-
-
-    if (!user) return; // safety
-
-    const key = `records_${user.mobile}`; // 🔥 unique per user
-
-    const existingRecords = localStorage.getItem(key);
-    const records: PatientRecord[] = existingRecords ? JSON.parse(existingRecords) : [];
-
-    records.push(record);
-
-    localStorage.setItem(key, JSON.stringify(records));
-  };
-
   const handleImageUpload = (imageUrl: string) => {
     setUploadedImage(imageUrl);
   };
@@ -94,6 +79,7 @@ export default function App() {
     setCurrentPage('processing');
 
     try {
+      const serialNumber = generateSerialNumber();
       const formData = new FormData();
 
       const res = await fetch(uploadedImage!);
@@ -101,10 +87,17 @@ export default function App() {
       const file = new File([blob], "eye.jpg", { type: "image/jpeg" });
 
       formData.append("image", file);
+      formData.append("serialNumber", serialNumber);
+      formData.append("name", user?.name || "User");
+      formData.append("gender", user?.gender || "");
+      formData.append("age", user?.dob ? calculateAge(user.dob).toString() : "-");
 
-      const response = await fetch("/predict", {
+      const response = await fetch(buildApiUrl('/predict'), {
         method: "POST",
-        body: formData
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
       });
 
       if (!response.ok) {
@@ -137,22 +130,7 @@ export default function App() {
         imageUrl: uploadedImage || "",
       };
 
-      const serialNumber = generateSerialNumber();
-      const user = getCurrentUser(); 
-      const patientRecord: PatientRecord = {
-        serialNumber,
-        patientDetails: {
-          name: user?.name || "User",
-          age: user?.dob ? calculateAge(user.dob).toString() : "-",
-          gender: user?.gender || "-"
-        },
-        analysisResult: result,
-        timestamp: new Date().toISOString(),
-      };
-
-
-      savePatientRecord(patientRecord);
-      setCurrentSerialNumber(serialNumber);
+      setCurrentSerialNumber(data.serialNumber || serialNumber);
       setAnalysisResult(result);
       setCurrentPage('results');
 
@@ -171,6 +149,7 @@ export default function App() {
     setCurrentPage('upload');
   };
   const handleLogout = () => {
+  logoutUser();
   setIsLoggedIn(false);
   setUploadedImage(null); // ✅ clear image
   setAnalysisResult(null);

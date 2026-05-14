@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { getAuthToken, buildApiUrl } from '../utils/auth';
 import { motion } from 'motion/react';
 import { ArrowLeft, Search, User, Calendar, Users, Hash, Eye, FileText } from 'lucide-react';
 import type { PatientRecord, Page } from '../App';
@@ -13,39 +13,70 @@ export function History({ onBack, onNavigate }: HistoryProps) {
   const [patientRecords, setPatientRecords] = useState<PatientRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredRecords, setFilteredRecords] = useState<PatientRecord[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<'All' | 'Normal' | 'Mild' | 'Severe'>('All');
 
   useEffect(() => {
-    // Load patient records from localStorage
-    // const storedRecords = localStorage.getItem('patientRecords');
-     
-    
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(buildApiUrl('/history'), {
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
+        });
 
-const user = getCurrentUser();
-const key = `records_${user?.mobile}`;
+        if (!response.ok) {
+          setPatientRecords([]);
+          setFilteredRecords([]);
+          return;
+        }
 
-const storedRecords = localStorage.getItem(key);
+        const data = await response.json();
+        const records: PatientRecord[] = (data.history || []).map((item: any) => ({
+          serialNumber: item.serialNumber,
+          patientDetails: item.patientDetails || {
+            name: item.name || 'User',
+            age: item.age || '-',
+            gender: item.gender || '-',
+          },
+          analysisResult: {
+            status: item.analysisResult?.status || (item.prediction === 'Normal' ? 'Normal' : 'Cataract'),
+            severity: item.analysisResult?.severity || item.severity,
+            confidence: item.analysisResult?.confidence || item.confidence,
+            imageUrl: item.analysisResult?.imageUrl || item.imageUrl || '',
+          },
+          timestamp: item.timestamp || item.createdAt,
+        }));
 
-    if (storedRecords) {
-      const records: PatientRecord[] = JSON.parse(storedRecords);
-      // Sort by timestamp (newest first)
-      records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setPatientRecords(records);
-      setFilteredRecords(records);
-    }
+        records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setPatientRecords(records);
+        setFilteredRecords(records);
+      } catch (error) {
+        setPatientRecords([]);
+        setFilteredRecords([]);
+      }
+    };
+
+    fetchHistory();
   }, []);
 
   useEffect(() => {
-    // Filter records based on search term
-    if (searchTerm) {
-      const filtered = patientRecords.filter((record) =>
-        record.patientDetails?.name || "User".toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredRecords(filtered);
-    } else {
-      setFilteredRecords(patientRecords);
-    }
-  }, [searchTerm, patientRecords]);
+    const filtered = patientRecords.filter((record) => {
+      const matchesSearch = searchTerm
+        ? (record.patientDetails?.name ?? 'User').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
+        : true;
+
+      const matchesStatus = selectedStatus === 'All'
+        ? true
+        : selectedStatus === 'Normal'
+          ? record.analysisResult.status === 'Normal'
+          : record.analysisResult.severity === selectedStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    setFilteredRecords(filtered);
+  }, [searchTerm, patientRecords, selectedStatus]);
 
   const getStatusBadgeConfig = (record: PatientRecord) => {
     if (record.analysisResult.status === 'Normal') {
@@ -109,15 +140,19 @@ const storedRecords = localStorage.getItem(key);
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by patient name or serial number..."
+                placeholder="Search by serial number"
                 className="w-full pl-12 pr-4 py-4 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0891b2] transition-all bg-white shadow-sm"
               />
             </div>
           </div>
+        
 
           {/* Stats Summary */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-xl p-4 border border-border shadow-sm">
+            <div
+              className="bg-white rounded-xl p-4 border border-border shadow-sm cursor-pointer hover:border-[#0891b2]"
+              onClick={() => setSelectedStatus('All')}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#e0f2fe] flex items-center justify-center">
                   <FileText className="w-5 h-5 text-[#0891b2]" />
@@ -128,7 +163,10 @@ const storedRecords = localStorage.getItem(key);
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-border shadow-sm">
+            <div
+              className="bg-white rounded-xl p-4 border border-border shadow-sm cursor-pointer hover:border-[#0891b2]"
+              onClick={() => setSelectedStatus('Normal')}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#d1fae5] flex items-center justify-center">
                   <Eye className="w-5 h-5 text-[#059669]" />
@@ -141,7 +179,10 @@ const storedRecords = localStorage.getItem(key);
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-border shadow-sm">
+            <div
+              className="bg-white rounded-xl p-4 border border-border shadow-sm cursor-pointer hover:border-[#0891b2]"
+              onClick={() => setSelectedStatus('Mild')}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#fef3c7] flex items-center justify-center">
                   <Eye className="w-5 h-5 text-[#d97706]" />
@@ -154,7 +195,10 @@ const storedRecords = localStorage.getItem(key);
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-border shadow-sm">
+            <div
+              className="bg-white rounded-xl p-4 border border-border shadow-sm cursor-pointer hover:border-[#0891b2]"
+              onClick={() => setSelectedStatus('Severe')}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#fee2e2] flex items-center justify-center">
                   <Eye className="w-5 h-5 text-[#dc2626]" />

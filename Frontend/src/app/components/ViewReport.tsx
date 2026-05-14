@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Search, CheckCircle, AlertCircle, AlertTriangle, Eye, Info, User, Calendar, Users, Hash } from 'lucide-react';
 import type { PatientRecord } from '../App';
-import { getCurrentUser } from '../utils/auth';
+import { getAuthToken, buildApiUrl } from '../utils/auth';
 import { useEffect } from 'react';
 
 interface ViewReportProps {
@@ -25,31 +25,43 @@ export function ViewReport({ onBack }: ViewReportProps) {
   }
 }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!serialNumber.trim()) {
       return;
     }
 
-    // Search for the record in localStorage
-    // const storedRecords = localStorage.getItem('patientRecords');
-    const user = getCurrentUser();
-const key = `records_${user?.mobile}`;
+    const selected = localStorage.getItem('selectedRecord');
+    if (selected) {
+      const record = JSON.parse(selected);
+      setSearchedRecord(record);
+      setNotFound(false);
+      return;
+    }
 
-const storedRecords = localStorage.getItem(key);
-    if (storedRecords) {
-      const records: PatientRecord[] = JSON.parse(storedRecords);
-      const found = records.find(r => r.serialNumber === serialNumber.trim());
-      
-      if (found) {
-        setSearchedRecord(found);
+    try {
+      const response = await fetch(buildApiUrl(`/history?serialNumber=${encodeURIComponent(serialNumber.trim())}`), {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        setSearchedRecord(null);
+        setNotFound(true);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success && data.record) {
+        setSearchedRecord(data.record);
         setNotFound(false);
       } else {
         setSearchedRecord(null);
         setNotFound(true);
       }
-    } else {
+    } catch (error) {
       setSearchedRecord(null);
       setNotFound(true);
     }
@@ -109,17 +121,17 @@ const storedRecords = localStorage.getItem(key);
           </button>
 
           {/* Header */}
-          <div className="text-center mb-10">
+          {/* <div className="text-center mb-10">
             <h1 className="text-3xl md:text-4xl mb-4 text-foreground">
               Your Report
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Enter the patient's serial number to retrieve their previous cataract detection report
             </p>
-          </div>
+          </div> */}
 
           {/* Search Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-border mb-8">
+          {/* <div className="bg-white rounded-2xl shadow-xl p-8 border border-border mb-8">
             <form onSubmit={handleSearch}>
               <div className="mb-6">
                 <label htmlFor="serialNumber" className="block text-sm mb-2 text-foreground">
@@ -151,7 +163,6 @@ const storedRecords = localStorage.getItem(key);
               </button>
             </form>
 
-            {/* Not Found Message */}
             {notFound && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -163,7 +174,7 @@ const storedRecords = localStorage.getItem(key);
                 </p>
               </motion.div>
             )}
-          </div>
+          </div> */}
 
           {/* Report Display */}
           {searchedRecord && (

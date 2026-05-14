@@ -13,7 +13,9 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.efficientnet import preprocess_input
 
 IMG_SIZE = 224
-STAGE1_METADATA_PATH = "models/stage1_metadata.json"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_DIR = os.path.join(BASE_DIR, "models")
+STAGE1_METADATA_PATH = os.path.join(MODEL_DIR, "stage1_metadata.json")
 STAGE1_CLASS_DEFAULT = {"cataract": 0, "normal": 1}
 
 
@@ -22,14 +24,14 @@ STAGE1_CLASS_DEFAULT = {"cataract": 0, "normal": 1}
 # -----------------------------
 def _load_stage1_model():
     candidates = [
-        "models/stage1_cataract_model.keras",
-        "models/stage1_cataract_model_best.h5",
-        "models/stage1_cataract_model.h5",
+        os.path.join(MODEL_DIR, "stage1_cataract_model.keras"),
+        os.path.join(MODEL_DIR, "stage1_cataract_model_best.h5"),
+        os.path.join(MODEL_DIR, "stage1_cataract_model.h5"),
     ]
 
     for path in candidates:
         if os.path.exists(path):
-            return tf.keras.models.load_model(path,compile=False), path
+            return tf.keras.models.load_model(path, compile=False), path
 
     raise FileNotFoundError("Stage-1 model not found.")
 
@@ -39,13 +41,13 @@ def _load_stage1_model():
 # -----------------------------
 def _load_stage2_model():
     candidates = [
-        "models/stage2_severity_model.keras",
-        "models/stage2_severity_model.h5",
+        os.path.join(MODEL_DIR, "stage2_severity_model.keras"),
+        os.path.join(MODEL_DIR, "stage2_severity_model.h5"),
     ]
 
     for path in candidates:
         if os.path.exists(path):
-            return tf.keras.models.load_model(path,compile=False), path
+            return tf.keras.models.load_model(path, compile=False), path
 
     raise FileNotFoundError("Stage-2 model not found.")
 
@@ -172,7 +174,7 @@ def predict_image(img_path):
 # -----------------------------
 if __name__ == "__main__":
 
-    test_image_path = sys.argv[1] if len(sys.argv) > 1 else "severeimg.jpg"
+    test_image_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(BASE_DIR, "severeimg.jpg")
 
     result = predict_image(test_image_path)
 

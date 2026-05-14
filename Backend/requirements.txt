@@ -1,6 +1,11 @@
 flask
 flask-cors
+flask-jwt-extended
+pymongo
+cloudinary
+python-dotenv
 tensorflow
 numpy
 matplotlib
 pillow
+gunicorn
