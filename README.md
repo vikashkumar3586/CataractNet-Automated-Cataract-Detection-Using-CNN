@@ -1,7 +1,6 @@
 # Cataract Detection Using EfficientNet
 
 ## 📌 Project Overview
-
 This project is an AI-based cataract detection system that uses deep learning to classify eye images into:
 
 - **Normal**
